@@ -1,0 +1,49 @@
+version: "3.7"
+services:
+  postgres-db:
+    image: postgres:latest
+    environment:
+      - POSTGRES_USER=docker
+      - POSTGRES_PASSWORD=docker
+      - POSTGRES_DB=test
+    volumes:
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - my-network
+
+  metier-service:
+    image: mesnaoui/metier-img:1.0.0
+    ports:
+      - "8081:8080"
+    depends_on:
+      - referentiel-service
+      - varnish
+    environment:
+      - REFERENTIEL_SERVICE_URL=http://varnish:80
+    networks:
+      - my-network
+
+  varnish:
+    image: varnish:latest
+    ports:
+      - "8080:80"
+    volumes:
+      - ./default.vcl:/etc/varnish/default.vcl
+    environment:
+      - VARNISH_SIZE=256M
+    networks:
+      - my-network
+      
+  referentiel-service:
+    image: mesnaoui/referenciel-img:1.1.0
+    ports:
+      - "9001:9001"
+    networks:
+      - my-network
+    depends_on:
+      - postgres-db
+
+networks:
+  my-network:
